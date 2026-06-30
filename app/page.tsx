@@ -196,7 +196,7 @@ export default function HomePage() {
       <main className="page-shell compact-shell">
         <section className="welcome">
           <p className="eyebrow">Alkas soy agaci</p>
-          <h1>Aile sayfasina hos geldiniz.</h1>
+          <h1>SOY AGACI SAYFASINA HOSGELDINIZ</h1>
           <p className="lead">
             Devam etmek icin adinizi ve soyadinizi yazin. Bu bilgi bu telefonda
             hatirlanir.
