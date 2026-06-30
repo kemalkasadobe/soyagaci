@@ -52,7 +52,7 @@ export default function HomePage() {
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
   const [form, setForm] = useState<FormState>(initialFormState);
-  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [editDrafts, setEditDrafts] = useState<Record<string, FormState>>({});
   const [visitorName, setVisitorName] = useState("");
   const [visitorInput, setVisitorInput] = useState("");
   const [showAdmin, setShowAdmin] = useState(false);
@@ -132,9 +132,9 @@ export default function HomePage() {
   }, [isVisitorReady]);
 
   useEffect(() => {
-    setNoteDrafts(
-      people.reduce<Record<string, string>>((drafts, person) => {
-        drafts[person.id] = person.notes ?? "";
+    setEditDrafts(
+      people.reduce<Record<string, FormState>>((drafts, person) => {
+        drafts[person.id] = personToFormState(person);
         return drafts;
       }, {})
     );
@@ -226,8 +226,8 @@ export default function HomePage() {
     const { error: insertError } = await supabase.from("people").insert({
       user_id: session.user.id,
       full_name: form.fullName.trim(),
-      birth_date: form.birthDate || null,
-      death_date: form.deathDate || null,
+      birth_date: yearToDate(form.birthDate),
+      death_date: yearToDate(form.deathDate),
       gender: form.gender || null,
       mother_id: form.motherId || null,
       father_id: form.fatherId || null,
@@ -245,6 +245,28 @@ export default function HomePage() {
     await loadPeople();
   }
 
+  function yearToDate(year: string) {
+    const cleanYear = year.trim();
+    return cleanYear ? `${cleanYear}-01-01` : null;
+  }
+
+  function dateToYear(date: string | null) {
+    return date ? date.slice(0, 4) : "";
+  }
+
+  function personToFormState(person: Person): FormState {
+    return {
+      fullName: person.full_name,
+      birthDate: dateToYear(person.birth_date),
+      deathDate: dateToYear(person.death_date),
+      gender: person.gender ?? "",
+      motherId: person.mother_id ?? "",
+      fatherId: person.father_id ?? "",
+      spouseId: person.spouse_id ?? "",
+      notes: person.notes ?? ""
+    };
+  }
+
   function getPersonName(id: string | null) {
     if (!id) return "";
     return peopleById.get(id)?.full_name ?? "";
@@ -256,15 +278,26 @@ export default function HomePage() {
     );
   }
 
-  async function handleUpdateNote(person: Person) {
+  async function handleUpdatePerson(person: Person) {
     if (!session) return;
+    const draft = editDrafts[person.id];
+    if (!draft || !draft.fullName.trim()) return;
 
     setError("");
     setMessage("");
 
     const { error: updateError } = await supabase
       .from("people")
-      .update({ notes: noteDrafts[person.id]?.trim() || null })
+      .update({
+        full_name: draft.fullName.trim(),
+        birth_date: yearToDate(draft.birthDate),
+        death_date: yearToDate(draft.deathDate),
+        gender: draft.gender || null,
+        mother_id: draft.motherId || null,
+        father_id: draft.fatherId || null,
+        spouse_id: draft.spouseId || null,
+        notes: draft.notes.trim() || null
+      })
       .eq("id", person.id);
 
     if (updateError) {
@@ -272,8 +305,18 @@ export default function HomePage() {
       return;
     }
 
-    setMessage("Not kaydedildi.");
+    setMessage("Kisi bilgileri kaydedildi.");
     await loadPeople();
+  }
+
+  function updateEditDraft(personId: string, values: Partial<FormState>) {
+    setEditDrafts((current) => ({
+      ...current,
+      [personId]: {
+        ...(current[personId] ?? initialFormState),
+        ...values
+      }
+    }));
   }
 
   if (loading) {
@@ -364,11 +407,13 @@ export default function HomePage() {
                     </span>
                     <div>
                       <strong>{person.full_name}</strong>
-                      <span>
-                        {[person.birth_date, person.death_date]
-                          .filter(Boolean)
-                          .join(" - ")}
-                      </span>
+                      {person.birth_date || person.death_date ? (
+                        <span>
+                          {[dateToYear(person.birth_date), dateToYear(person.death_date)]
+                            .filter(Boolean)
+                            .join(" - ")}
+                        </span>
+                      ) : null}
                       {person.gender ? <span>{person.gender}</span> : null}
                       {person.spouse_id ? (
                         <span>Es: {getPersonName(person.spouse_id)}</span>
@@ -462,10 +507,13 @@ export default function HomePage() {
                     required
                   />
 
-                  <label htmlFor="birthDate">Dogum tarihi</label>
+                  <label htmlFor="birthDate">Dogum yili</label>
                   <input
                     id="birthDate"
-                    type="date"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="2200"
                     value={form.birthDate}
                     onChange={(event) =>
                       setForm((current) => ({
@@ -475,10 +523,13 @@ export default function HomePage() {
                     }
                   />
 
-                  <label htmlFor="deathDate">Vefat tarihi</label>
+                  <label htmlFor="deathDate">Olum yili</label>
                   <input
                     id="deathDate"
-                    type="date"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="2200"
                     value={form.deathDate}
                     onChange={(event) =>
                       setForm((current) => ({
@@ -581,28 +632,133 @@ export default function HomePage() {
 
             {session && isMainAdmin && people.length > 0 ? (
               <section className="panel">
-                <h2>Notlari duzenle</h2>
+                <h2>Kisileri duzenle</h2>
                 <div className="editor-list">
-                  {people.map((person) => (
-                    <article className="editor-card" key={person.id}>
-                      <strong>{person.full_name}</strong>
-                      <label htmlFor={`note-${person.id}`}>Not</label>
-                      <textarea
-                        id={`note-${person.id}`}
-                        value={noteDrafts[person.id] ?? ""}
-                        onChange={(event) =>
-                          setNoteDrafts((current) => ({
-                            ...current,
-                            [person.id]: event.target.value
-                          }))
-                        }
-                        rows={3}
-                      />
-                      <button type="button" onClick={() => handleUpdateNote(person)}>
-                        Notu kaydet
-                      </button>
-                    </article>
-                  ))}
+                  {people.map((person) => {
+                    const draft = editDrafts[person.id] ?? personToFormState(person);
+
+                    return (
+                      <article className="editor-card" key={person.id}>
+                        <strong>{person.full_name}</strong>
+
+                        <label htmlFor={`edit-name-${person.id}`}>Ad soyad</label>
+                        <input
+                          id={`edit-name-${person.id}`}
+                          value={draft.fullName}
+                          onChange={(event) =>
+                            updateEditDraft(person.id, { fullName: event.target.value })
+                          }
+                          required
+                        />
+
+                        <label htmlFor={`edit-birth-${person.id}`}>Dogum yili</label>
+                        <input
+                          id={`edit-birth-${person.id}`}
+                          type="number"
+                          inputMode="numeric"
+                          min="0"
+                          max="2200"
+                          value={draft.birthDate}
+                          onChange={(event) =>
+                            updateEditDraft(person.id, { birthDate: event.target.value })
+                          }
+                        />
+
+                        <label htmlFor={`edit-death-${person.id}`}>Olum yili</label>
+                        <input
+                          id={`edit-death-${person.id}`}
+                          type="number"
+                          inputMode="numeric"
+                          min="0"
+                          max="2200"
+                          value={draft.deathDate}
+                          onChange={(event) =>
+                            updateEditDraft(person.id, { deathDate: event.target.value })
+                          }
+                        />
+
+                        <label htmlFor={`edit-gender-${person.id}`}>Cinsiyet</label>
+                        <select
+                          id={`edit-gender-${person.id}`}
+                          value={draft.gender}
+                          onChange={(event) =>
+                            updateEditDraft(person.id, { gender: event.target.value })
+                          }
+                        >
+                          <option value="">Secilmedi</option>
+                          <option value="Kadin">Kadin</option>
+                          <option value="Erkek">Erkek</option>
+                        </select>
+
+                        <label htmlFor={`edit-mother-${person.id}`}>Anne</label>
+                        <select
+                          id={`edit-mother-${person.id}`}
+                          value={draft.motherId}
+                          onChange={(event) =>
+                            updateEditDraft(person.id, { motherId: event.target.value })
+                          }
+                        >
+                          <option value="">Secilmedi</option>
+                          {people
+                            .filter((option) => option.id !== person.id)
+                            .map((option) => (
+                              <option key={option.id} value={option.id}>
+                                {option.full_name}
+                              </option>
+                            ))}
+                        </select>
+
+                        <label htmlFor={`edit-father-${person.id}`}>Baba</label>
+                        <select
+                          id={`edit-father-${person.id}`}
+                          value={draft.fatherId}
+                          onChange={(event) =>
+                            updateEditDraft(person.id, { fatherId: event.target.value })
+                          }
+                        >
+                          <option value="">Secilmedi</option>
+                          {people
+                            .filter((option) => option.id !== person.id)
+                            .map((option) => (
+                              <option key={option.id} value={option.id}>
+                                {option.full_name}
+                              </option>
+                            ))}
+                        </select>
+
+                        <label htmlFor={`edit-spouse-${person.id}`}>Es</label>
+                        <select
+                          id={`edit-spouse-${person.id}`}
+                          value={draft.spouseId}
+                          onChange={(event) =>
+                            updateEditDraft(person.id, { spouseId: event.target.value })
+                          }
+                        >
+                          <option value="">Secilmedi</option>
+                          {people
+                            .filter((option) => option.id !== person.id)
+                            .map((option) => (
+                              <option key={option.id} value={option.id}>
+                                {option.full_name}
+                              </option>
+                            ))}
+                        </select>
+
+                        <label htmlFor={`edit-note-${person.id}`}>Not</label>
+                        <textarea
+                          id={`edit-note-${person.id}`}
+                          value={draft.notes}
+                          onChange={(event) =>
+                            updateEditDraft(person.id, { notes: event.target.value })
+                          }
+                          rows={3}
+                        />
+                        <button type="button" onClick={() => handleUpdatePerson(person)}>
+                          Bilgileri kaydet
+                        </button>
+                      </article>
+                    );
+                  })}
                 </div>
               </section>
             ) : null}

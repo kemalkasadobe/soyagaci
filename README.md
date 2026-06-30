@@ -8,6 +8,7 @@ Next.js + Supabase ile calisan minimum aile soy agaci uygulamasi.
 - Ana yonetici: `kemalkasadobe@gmail.com`
 - Kaydolma ve editor modu kapali; sadece ana yonetici email + sifre ile girer.
 - Magic link/email OTP kullanilmaz; boylece Supabase email rate limit'e takilmaz.
+- Dogum ve olum bilgileri ekranda yalnizca yil olarak girilir ve gosterilir.
 
 ## Ortam Degiskenleri
 
