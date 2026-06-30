@@ -42,8 +42,20 @@ textarea {
   padding: 48px 0;
 }
 
+.compact-shell {
+  width: min(560px, calc(100% - 32px));
+}
+
 .hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
   margin-bottom: 28px;
+}
+
+.welcome {
+  margin-bottom: 24px;
 }
 
 .eyebrow {
@@ -92,7 +104,8 @@ h2 {
   max-width: 460px;
 }
 
-.workspace {
+.workspace,
+.admin-shell {
   display: grid;
   gap: 18px;
 }
@@ -115,6 +128,16 @@ h2 {
   display: grid;
   grid-template-columns: minmax(280px, 420px) 1fr;
   gap: 18px;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.admin-toggle {
+  justify-self: start;
 }
 
 .stack {
@@ -166,6 +189,78 @@ button.secondary {
 
 button.secondary:hover {
   background: #f1f5f9;
+}
+
+.tree-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 24px;
+  box-shadow: 0 14px 40px rgb(15 23 42 / 0.08);
+  margin-bottom: 18px;
+}
+
+.tree-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.person-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 92px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfdff;
+}
+
+.person-card strong,
+.person-card span {
+  display: block;
+}
+
+.person-card span,
+.person-card p {
+  color: var(--muted);
+}
+
+.person-card p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #2563eb;
+  font-weight: 800;
+}
+
+.empty-state {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  color: var(--muted);
+  background: #fbfdff;
+}
+
+.empty-state strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.empty-state p {
+  margin-bottom: 0;
 }
 
 .people-list {
@@ -223,7 +318,8 @@ button.secondary:hover {
   }
 
   .grid,
-  .toolbar {
+  .toolbar,
+  .hero {
     grid-template-columns: 1fr;
   }
 
@@ -231,12 +327,32 @@ button.secondary:hover {
     display: grid;
   }
 
-  .toolbar {
+  .toolbar,
+  .hero {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .panel {
+  .panel,
+  .tree-panel {
     padding: 18px;
+  }
+
+  h1 {
+    font-size: 2.25rem;
+  }
+
+  button,
+  .admin-toggle {
+    width: 100%;
+  }
+
+  .list-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tree-grid {
+    grid-template-columns: 1fr;
   }
 }

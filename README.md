@@ -27,10 +27,10 @@ create table if not exists public.people (
 
 alter table public.people enable row level security;
 
-create policy "Users can read own people"
+create policy "Anyone can read people"
 on public.people for select
-to authenticated
-using (auth.uid() = user_id);
+to anon, authenticated
+using (true);
 
 create policy "Users can insert own people"
 on public.people for insert
