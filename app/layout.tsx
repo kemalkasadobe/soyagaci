@@ -3,8 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Soy Agaci",
-  description: "SOY AGACI UYGULAMASINA HOSGELDINIZ
-    HUN XER HATIN"
+  description: "SOY AGACI UYGULAMASINA HOSGELDINIZ HUN XER HATIN"
 };
 
 export default function RootLayout({
