@@ -6,7 +6,7 @@ Next.js + Supabase ile calisan minimum aile soy agaci uygulamasi.
 
 - Ziyaretciler ad soyad yazar ve soy agacini gorur.
 - Ana yonetici: `kemalkasadobe@gmail.com`
-- Editorler Supabase Auth kullanicisi olarak email + sifre ile girer.
+- Kaydolma ve editor modu kapali; sadece ana yonetici email + sifre ile girer.
 - Magic link/email OTP kullanilmaz; boylece Supabase email rate limit'e takilmaz.
 
 ## Ortam Degiskenleri
@@ -44,11 +44,11 @@ on public.people for insert
 to authenticated
 with check ((auth.jwt() ->> 'email') = 'kemalkasadobe@gmail.com');
 
-create policy "Authenticated users can update people notes"
+create policy "Main admin can update people"
 on public.people for update
 to authenticated
-using (true)
-with check (true);
+using ((auth.jwt() ->> 'email') = 'kemalkasadobe@gmail.com')
+with check ((auth.jwt() ->> 'email') = 'kemalkasadobe@gmail.com');
 
 create policy "Main admin can delete people"
 on public.people for delete
@@ -56,12 +56,7 @@ to authenticated
 using ((auth.jwt() ->> 'email') = 'kemalkasadobe@gmail.com');
 ```
 
-Editorlerin yalnizca `notes` kolonunu guncelleyebilmesi icin ek guvenlik:
-
-```sql
-revoke update on public.people from authenticated;
-grant update (notes) on public.people to authenticated;
-```
+Kaydolmayi Supabase Dashboard > Authentication > Providers > Email altindan kapatin.
 
 ## Calistirma
 

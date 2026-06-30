@@ -44,7 +44,6 @@ export default function HomePage() {
 
   const userEmail = useMemo(() => session?.user.email ?? "", [session]);
   const isMainAdmin = userEmail.toLowerCase() === mainAdminEmail;
-  const isEditor = Boolean(session && !isMainAdmin);
   const isVisitorReady = visitorName.trim().length > 0;
 
   useEffect(() => {
@@ -64,13 +63,31 @@ export default function HomePage() {
 
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
-      setSession(data.session);
+      if (
+        data.session?.user.email &&
+        data.session.user.email.toLowerCase() !== mainAdminEmail
+      ) {
+        void supabase.auth.signOut();
+        setSession(null);
+      } else {
+        setSession(data.session);
+      }
       setLoading(false);
     });
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (
+        nextSession?.user.email &&
+        nextSession.user.email.toLowerCase() !== mainAdminEmail
+      ) {
+        void supabase.auth.signOut();
+        setSession(null);
+        setError("Bu alan sadece ana yonetici icindir.");
+        return;
+      }
+
       setSession(nextSession);
       setMessage("");
       setError("");
@@ -147,6 +164,11 @@ export default function HomePage() {
       setError(
         "Supabase ortam degiskenleri eksik. NEXT_PUBLIC_SUPABASE_URL ve NEXT_PUBLIC_SUPABASE_ANON_KEY tanimlayin."
       );
+      return;
+    }
+
+    if (email.trim().toLowerCase() !== mainAdminEmail) {
+      setError("Bu alan sadece ana yonetici icindir.");
       return;
     }
 
@@ -349,9 +371,7 @@ export default function HomePage() {
               <section className="panel">
                 <div className="toolbar">
                   <div>
-                    <p className="eyebrow">
-                      {isMainAdmin ? "Ana yonetici" : "Editor"}
-                    </p>
+                    <p className="eyebrow">Ana yonetici</p>
                     <h2>{userEmail}</h2>
                   </div>
                   <button className="secondary" type="button" onClick={handleLogout}>
@@ -359,64 +379,54 @@ export default function HomePage() {
                   </button>
                 </div>
 
-                {isMainAdmin ? (
-                  <form onSubmit={handleAddPerson} className="stack">
-                    <label htmlFor="fullName">Ad soyad</label>
-                    <input
-                      id="fullName"
-                      value={form.fullName}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          fullName: event.target.value
-                        }))
-                      }
-                      required
-                    />
+                <form onSubmit={handleAddPerson} className="stack">
+                  <label htmlFor="fullName">Ad soyad</label>
+                  <input
+                    id="fullName"
+                    value={form.fullName}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        fullName: event.target.value
+                      }))
+                    }
+                    required
+                  />
 
-                    <label htmlFor="birthDate">Dogum tarihi</label>
-                    <input
-                      id="birthDate"
-                      type="date"
-                      value={form.birthDate}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          birthDate: event.target.value
-                        }))
-                      }
-                    />
+                  <label htmlFor="birthDate">Dogum tarihi</label>
+                  <input
+                    id="birthDate"
+                    type="date"
+                    value={form.birthDate}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        birthDate: event.target.value
+                      }))
+                    }
+                  />
 
-                    <label htmlFor="notes">Not</label>
-                    <textarea
-                      id="notes"
-                      value={form.notes}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          notes: event.target.value
-                        }))
-                      }
-                      rows={4}
-                    />
+                  <label htmlFor="notes">Not</label>
+                  <textarea
+                    id="notes"
+                    value={form.notes}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        notes: event.target.value
+                      }))
+                    }
+                    rows={4}
+                  />
 
-                    <button type="submit">Kisi ekle</button>
-                  </form>
-                ) : (
-                  <div className="empty-state">
-                    <strong>Editor yetkisi</strong>
-                    <p>
-                      Bu email ana yonetici degil. Kisi ekleme kapali; sadece
-                      mevcut kisilerin not alanlari duzenlenebilir.
-                    </p>
-                  </div>
-                )}
+                  <button type="submit">Kisi ekle</button>
+                </form>
               </section>
             )}
 
-            {session && people.length > 0 ? (
+            {session && isMainAdmin && people.length > 0 ? (
               <section className="panel">
-                <h2>{isEditor ? "Editor notlari" : "Notlari duzenle"}</h2>
+                <h2>Notlari duzenle</h2>
                 <div className="editor-list">
                   {people.map((person) => (
                     <article className="editor-card" key={person.id}>
