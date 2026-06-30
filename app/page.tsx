@@ -57,6 +57,7 @@ export default function HomePage() {
   const [visitorInput, setVisitorInput] = useState("");
   const [showAdmin, setShowAdmin] = useState(false);
   const [activeView, setActiveView] = useState<"tree" | "list">("tree");
+  const [showAddMember, setShowAddMember] = useState(false);
 
   const userEmail = useMemo(() => session?.user.email ?? "", [session]);
   const isMainAdmin = userEmail.toLowerCase() === mainAdminEmail;
@@ -274,6 +275,7 @@ export default function HomePage() {
 
     setForm(initialFormState);
     setMessage("Kisi eklendi.");
+    setShowAddMember(false);
     await loadPeople();
   }
 
@@ -363,6 +365,17 @@ export default function HomePage() {
     }));
   }
 
+  function handleSiblingPick(siblingId: string) {
+    const sibling = peopleById.get(siblingId);
+    if (!sibling) return;
+
+    setForm((current) => ({
+      ...current,
+      motherId: sibling.mother_id ?? "",
+      fatherId: sibling.father_id ?? ""
+    }));
+  }
+
   if (loading) {
     return (
       <main className="page-shell compact-shell">
@@ -446,6 +459,11 @@ export default function HomePage() {
             <button className="secondary" type="button" onClick={loadPeople}>
               Yenile
             </button>
+            {session && isMainAdmin ? (
+              <button type="button" onClick={() => setShowAddMember(true)}>
+                Uye ekle
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -560,142 +578,9 @@ export default function HomePage() {
                     Cikis yap
                   </button>
                 </div>
-
-                <h2>Kisi ekle</h2>
-                <form onSubmit={handleAddPerson} className="stack">
-                  <label htmlFor="fullName">Ad soyad</label>
-                  <input
-                    id="fullName"
-                    value={form.fullName}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        fullName: event.target.value
-                      }))
-                    }
-                    required
-                  />
-
-                  <label htmlFor="birthDate">Dogum yili</label>
-                  <input
-                    id="birthDate"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    max="2200"
-                    value={form.birthDate}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        birthDate: event.target.value
-                      }))
-                    }
-                  />
-
-                  <label htmlFor="deathDate">Olum yili</label>
-                  <input
-                    id="deathDate"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    max="2200"
-                    value={form.deathDate}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        deathDate: event.target.value
-                      }))
-                    }
-                  />
-
-                  <label htmlFor="gender">Cinsiyet</label>
-                  <select
-                    id="gender"
-                    value={form.gender}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        gender: event.target.value
-                      }))
-                    }
-                  >
-                    <option value="">Secilmedi</option>
-                    <option value="Kadin">Kadin</option>
-                    <option value="Erkek">Erkek</option>
-                  </select>
-
-                  <label htmlFor="motherId">Anne</label>
-                  <select
-                    id="motherId"
-                    value={form.motherId}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        motherId: event.target.value
-                      }))
-                    }
-                  >
-                    <option value="">Secilmedi</option>
-                    {people.map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {person.full_name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <label htmlFor="fatherId">Baba</label>
-                  <select
-                    id="fatherId"
-                    value={form.fatherId}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        fatherId: event.target.value
-                      }))
-                    }
-                  >
-                    <option value="">Secilmedi</option>
-                    {people.map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {person.full_name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <label htmlFor="spouseId">Es</label>
-                  <select
-                    id="spouseId"
-                    value={form.spouseId}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        spouseId: event.target.value
-                      }))
-                    }
-                  >
-                    <option value="">Secilmedi</option>
-                    {people.map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {person.full_name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <label htmlFor="notes">Not</label>
-                  <textarea
-                    id="notes"
-                    value={form.notes}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        notes: event.target.value
-                      }))
-                    }
-                    rows={4}
-                  />
-
-                  <button type="submit">Kisi ekle</button>
-                </form>
+                <button type="button" onClick={() => setShowAddMember(true)}>
+                  Uye ekle
+                </button>
               </section>
             )}
 
@@ -837,6 +722,182 @@ export default function HomePage() {
 
       {message ? <p className="success">{message}</p> : null}
       {error ? <p className="error">{error}</p> : null}
+
+      {showAddMember && session && isMainAdmin ? (
+        <div className="drawer-backdrop" role="presentation">
+          <aside className="member-drawer" aria-label="Aile uyesi ekle">
+            <div className="drawer-header">
+              <h2>Aile Uyesi Ekle</h2>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="Kapat"
+                onClick={() => setShowAddMember(false)}
+              >
+                x
+              </button>
+            </div>
+
+            <form onSubmit={handleAddPerson} className="drawer-form">
+              <label htmlFor="fullName">Ad Soyad *</label>
+              <input
+                id="fullName"
+                value={form.fullName}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    fullName: event.target.value
+                  }))
+                }
+                placeholder="Tam adinizi girin"
+                required
+              />
+
+              <label htmlFor="gender">Cinsiyet *</label>
+              <select
+                id="gender"
+                value={form.gender}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    gender: event.target.value
+                  }))
+                }
+              >
+                <option value="">Secilmedi</option>
+                <option value="Erkek">Erkek</option>
+                <option value="Kadin">Kadin</option>
+              </select>
+
+              <div className="form-split">
+                <div>
+                  <label htmlFor="birthDate">Dogum Yili</label>
+                  <input
+                    id="birthDate"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="2200"
+                    value={form.birthDate}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        birthDate: event.target.value
+                      }))
+                    }
+                    placeholder="1990"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="deathDate">Olum Yili</label>
+                  <input
+                    id="deathDate"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="2200"
+                    value={form.deathDate}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        deathDate: event.target.value
+                      }))
+                    }
+                    placeholder="Yasiyorsa bos"
+                  />
+                </div>
+              </div>
+
+              <label htmlFor="notes">Biyografi</label>
+              <textarea
+                id="notes"
+                value={form.notes}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    notes: event.target.value
+                  }))
+                }
+                rows={4}
+                placeholder="Bu kisi hakkinda kisa bir aciklama..."
+              />
+
+              <label htmlFor="motherId">Anne</label>
+              <select
+                id="motherId"
+                value={form.motherId}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    motherId: event.target.value
+                  }))
+                }
+              >
+                <option value="">Secilmedi</option>
+                {people.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.full_name}
+                  </option>
+                ))}
+              </select>
+
+              <label htmlFor="fatherId">Baba</label>
+              <select
+                id="fatherId"
+                value={form.fatherId}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    fatherId: event.target.value
+                  }))
+                }
+              >
+                <option value="">Secilmedi</option>
+                {people.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.full_name}
+                  </option>
+                ))}
+              </select>
+
+              <label htmlFor="spouseId">Es</label>
+              <select
+                id="spouseId"
+                value={form.spouseId}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    spouseId: event.target.value
+                  }))
+                }
+              >
+                <option value="">Secilmedi</option>
+                {people.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.full_name}
+                  </option>
+                ))}
+              </select>
+
+              <label htmlFor="siblingId">Kardesi varsa sec</label>
+              <select
+                id="siblingId"
+                onChange={(event) => handleSiblingPick(event.target.value)}
+                defaultValue=""
+              >
+                <option value="">Secilmedi</option>
+                {people.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.full_name}
+                  </option>
+                ))}
+              </select>
+
+              <button type="submit">Kaydet</button>
+            </form>
+          </aside>
+        </div>
+      ) : null}
     </main>
   );
 }
