@@ -402,48 +402,78 @@ button.secondary:hover {
 }
 
 .full-tree-scroll {
-  min-height: 560px;
+  min-height: 640px;
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #d7d9db;
-  padding: 18px;
+  background:
+    radial-gradient(circle at 22px 22px, rgb(148 163 184 / 0.12) 1px, transparent 1px),
+    #f8fafc;
+  background-size: 44px 44px;
+  padding: 26px;
 }
 
 .full-tree-board {
-  display: grid;
-  gap: 28px;
-  min-width: 760px;
-  min-height: 500px;
-  align-content: center;
-}
-
-.full-generation {
   position: relative;
-  display: grid;
-  gap: 10px;
+  min-width: 760px;
+  min-height: 520px;
 }
 
-.full-generation:not(:last-child)::after {
-  content: "";
+.tree-connector-layer {
   position: absolute;
-  left: 40px;
-  right: 40px;
-  bottom: -15px;
-  height: 2px;
-  background: rgb(100 116 139 / 0.28);
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.full-generation-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: center;
-  gap: 14px;
+.tree-connector {
+  fill: none;
+  stroke: #66727f;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
 }
 
-.full-generation-row .pedigree-card {
-  width: 210px;
+.tree-generation-label {
+  position: absolute;
+  z-index: 2;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.tree-person-card {
+  position: absolute;
+  z-index: 3;
+  box-shadow: 0 10px 24px rgb(15 23 42 / 0.14);
+}
+
+.tree-person-card::after {
+  content: "...";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  color: #2563eb;
+  background: #dbeafe;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.tree-person-card.female::after {
+  color: #be4f82;
+  background: #fde3ef;
+}
+
+.tree-person-card.neutral::after {
+  color: #8a6b05;
+  background: #fef3c7;
 }
 
 .pedigree-scroll {
@@ -485,7 +515,7 @@ button.secondary:hover {
   border: 2px solid #a7b0ba;
   border-left: 12px solid #38a8d8;
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 8px 38px 8px 10px;
   color: var(--foreground);
   text-align: left;
   background: #ffffff;
@@ -923,6 +953,10 @@ button.secondary:hover {
     grid-template-columns: 1fr;
   }
 
+  .full-tree-layout.detail-open {
+    grid-template-columns: 1fr;
+  }
+
   .full-tree-scroll {
     min-height: 420px;
     padding: 12px;
@@ -931,10 +965,6 @@ button.secondary:hover {
   .full-tree-board {
     min-width: 620px;
     min-height: 380px;
-  }
-
-  .full-generation-row {
-    justify-content: flex-start;
   }
 
   .pedigree-scroll {

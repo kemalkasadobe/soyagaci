@@ -108,6 +108,63 @@ export default function HomePage() {
 
     return levels;
   }, [people]);
+  const horizontalTree = useMemo(() => {
+    const cardWidth = 300;
+    const cardHeight = 72;
+    const columnGap = 170;
+    const rowGap = 34;
+    const topPadding = 64;
+    const leftPadding = 48;
+    const sortedLevels = allTreeLevels.map((level) =>
+      [...level].sort((first, second) => {
+        const firstYear = Number(dateToYear(first.birth_date)) || 9999;
+        const secondYear = Number(dateToYear(second.birth_date)) || 9999;
+        return firstYear - secondYear || first.full_name.localeCompare(second.full_name);
+      })
+    );
+    const maxRows = Math.max(1, ...sortedLevels.map((level) => level.length));
+    const canvasHeight =
+      topPadding * 2 + maxRows * cardHeight + Math.max(0, maxRows - 1) * rowGap;
+    const canvasWidth =
+      leftPadding * 2 +
+      sortedLevels.length * cardWidth +
+      Math.max(0, sortedLevels.length - 1) * columnGap;
+    const positions: Record<string, { x: number; y: number }> = {};
+
+    sortedLevels.forEach((level, levelIndex) => {
+      const columnHeight =
+        level.length * cardHeight + Math.max(0, level.length - 1) * rowGap;
+      const startY = topPadding + Math.max(0, (canvasHeight - topPadding * 2 - columnHeight) / 2);
+
+      level.forEach((person, personIndex) => {
+        positions[person.id] = {
+          x: leftPadding + levelIndex * (cardWidth + columnGap),
+          y: startY + personIndex * (cardHeight + rowGap)
+        };
+      });
+    });
+
+    const usedEdges = new Set<string>();
+    const edges = people.flatMap((child) =>
+      [child.father_id, child.mother_id].flatMap((parentId) => {
+        if (!parentId || !positions[parentId] || !positions[child.id]) return [];
+        const edgeKey = `${parentId}-${child.id}`;
+        if (usedEdges.has(edgeKey)) return [];
+        usedEdges.add(edgeKey);
+        return [{ parentId, childId: child.id }];
+      })
+    );
+
+    return {
+      cardHeight,
+      cardWidth,
+      edges,
+      height: canvasHeight,
+      levels: sortedLevels,
+      positions,
+      width: canvasWidth
+    };
+  }, [allTreeLevels, people]);
 
   useEffect(() => {
     const storedVisitorName = window.localStorage.getItem(visitorStorageKey);
@@ -512,32 +569,83 @@ export default function HomePage() {
             aria-label="Tum soy agaci gorunumu"
           >
             <div className="full-tree-scroll">
-              <div className="full-tree-board">
-                {allTreeLevels.map((level, levelIndex) => (
-                  <section className="full-generation" key={`level-${levelIndex}`}>
-                    <span className="generation-label">{levelIndex + 1}. Nesil</span>
-                    <div className="full-generation-row">
-                      {level.map((person) => (
-                        <button
-                          className={`pedigree-card ${getGenderClass(person)} ${
-                            selectedPerson?.id === person.id ? "selected" : ""
-                          }`}
-                          key={person.id}
-                          type="button"
-                          onClick={() => setSelectedPersonId(person.id)}
-                        >
-                          <span className="pedigree-avatar" aria-hidden="true">
-                            {person.full_name.trim().charAt(0).toUpperCase()}
-                          </span>
-                          <span className="pedigree-name">{person.full_name}</span>
-                          {formatYears(person) ? (
-                            <span className="pedigree-years">{formatYears(person)}</span>
-                          ) : null}
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                ))}
+              <div
+                className="full-tree-board"
+                style={{ height: horizontalTree.height, width: horizontalTree.width }}
+              >
+                <svg
+                  className="tree-connector-layer"
+                  viewBox={`0 0 ${horizontalTree.width} ${horizontalTree.height}`}
+                  aria-hidden="true"
+                >
+                  {horizontalTree.edges.map((edge) => {
+                    const parentPosition = horizontalTree.positions[edge.parentId];
+                    const childPosition = horizontalTree.positions[edge.childId];
+                    const startX = parentPosition.x + horizontalTree.cardWidth;
+                    const startY = parentPosition.y + horizontalTree.cardHeight / 2;
+                    const endX = childPosition.x;
+                    const endY = childPosition.y + horizontalTree.cardHeight / 2;
+                    const middleX = startX + (endX - startX) / 2;
+
+                    return (
+                      <path
+                        className="tree-connector"
+                        d={`M ${startX} ${startY} H ${middleX} V ${endY} H ${endX}`}
+                        key={`${edge.parentId}-${edge.childId}`}
+                      />
+                    );
+                  })}
+                </svg>
+
+                {horizontalTree.levels.map((level, levelIndex) => {
+                  const firstPosition = level[0]
+                    ? horizontalTree.positions[level[0].id]
+                    : null;
+
+                  return firstPosition ? (
+                    <span
+                      className="tree-generation-label"
+                      key={`label-${levelIndex}`}
+                      style={{
+                        left: firstPosition.x,
+                        top: Math.max(16, firstPosition.y - 38)
+                      }}
+                    >
+                      {levelIndex + 1}. Nesil
+                    </span>
+                  ) : null;
+                })}
+
+                {horizontalTree.levels.flatMap((level) =>
+                  level.map((person) => {
+                    const position = horizontalTree.positions[person.id];
+
+                    return (
+                      <button
+                        className={`pedigree-card tree-person-card ${getGenderClass(person)} ${
+                          selectedPerson?.id === person.id ? "selected" : ""
+                        }`}
+                        key={person.id}
+                        style={{
+                          height: horizontalTree.cardHeight,
+                          left: position.x,
+                          top: position.y,
+                          width: horizontalTree.cardWidth
+                        }}
+                        type="button"
+                        onClick={() => setSelectedPersonId(person.id)}
+                      >
+                        <span className="pedigree-avatar" aria-hidden="true">
+                          {person.full_name.trim().charAt(0).toUpperCase()}
+                        </span>
+                        <span className="pedigree-name">{person.full_name}</span>
+                        {formatYears(person) ? (
+                          <span className="pedigree-years">{formatYears(person)}</span>
+                        ) : null}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
 
