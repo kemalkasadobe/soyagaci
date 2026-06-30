@@ -32,21 +32,28 @@ on public.people for select
 to anon, authenticated
 using (true);
 
-create policy "Users can insert own people"
+create policy "Main admin can insert people"
 on public.people for insert
 to authenticated
-with check (auth.uid() = user_id);
+with check ((auth.jwt() ->> 'email') = 'kemalkasadobe@gmail.com');
 
-create policy "Users can update own people"
+create policy "Authenticated users can update people notes"
 on public.people for update
 to authenticated
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+using (true)
+with check (true);
 
-create policy "Users can delete own people"
+create policy "Main admin can delete people"
 on public.people for delete
 to authenticated
-using (auth.uid() = user_id);
+using ((auth.jwt() ->> 'email') = 'kemalkasadobe@gmail.com');
+```
+
+Editorlerin yalnizca `notes` kolonunu guncelleyebilmesi icin ek guvenlik:
+
+```sql
+revoke update on public.people from authenticated;
+grant update (notes) on public.people to authenticated;
 ```
 
 ## Calistirma

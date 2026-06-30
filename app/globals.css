@@ -263,6 +263,24 @@ button.secondary:hover {
   margin-bottom: 0;
 }
 
+.editor-list {
+  display: grid;
+  gap: 14px;
+}
+
+.editor-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfdff;
+}
+
+.editor-card button {
+  justify-self: start;
+}
+
 .people-list {
   display: grid;
   gap: 12px;
@@ -345,6 +363,10 @@ button.secondary:hover {
   button,
   .admin-toggle {
     width: 100%;
+  }
+
+  .editor-card button {
+    justify-self: stretch;
   }
 
   .list-header {

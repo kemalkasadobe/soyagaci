@@ -25,6 +25,7 @@ const initialFormState: FormState = {
 };
 
 const visitorStorageKey = "soyagaci_visitor_name";
+const mainAdminEmail = "kemalkasadobe@gmail.com";
 
 export default function HomePage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -35,11 +36,14 @@ export default function HomePage() {
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
   const [form, setForm] = useState<FormState>(initialFormState);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [visitorName, setVisitorName] = useState("");
   const [visitorInput, setVisitorInput] = useState("");
   const [showAdmin, setShowAdmin] = useState(false);
 
   const userEmail = useMemo(() => session?.user.email ?? "", [session]);
+  const isMainAdmin = userEmail.toLowerCase() === mainAdminEmail;
+  const isEditor = Boolean(session && !isMainAdmin);
   const isVisitorReady = visitorName.trim().length > 0;
 
   useEffect(() => {
@@ -85,6 +89,15 @@ export default function HomePage() {
 
     void loadPeople();
   }, [isVisitorReady]);
+
+  useEffect(() => {
+    setNoteDrafts(
+      people.reduce<Record<string, string>>((drafts, person) => {
+        drafts[person.id] = person.notes ?? "";
+        return drafts;
+      }, {})
+    );
+  }, [people]);
 
   async function loadPeople() {
     setPeopleLoading(true);
@@ -159,7 +172,7 @@ export default function HomePage() {
 
   async function handleAddPerson(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!session || !form.fullName.trim()) return;
+    if (!session || !isMainAdmin || !form.fullName.trim()) return;
 
     setError("");
     setMessage("");
@@ -178,6 +191,26 @@ export default function HomePage() {
 
     setForm(initialFormState);
     setMessage("Kisi eklendi.");
+    await loadPeople();
+  }
+
+  async function handleUpdateNote(person: Person) {
+    if (!session) return;
+
+    setError("");
+    setMessage("");
+
+    const { error: updateError } = await supabase
+      .from("people")
+      .update({ notes: noteDrafts[person.id]?.trim() || null })
+      .eq("id", person.id);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    setMessage("Not kaydedildi.");
     await loadPeople();
   }
 
@@ -307,7 +340,9 @@ export default function HomePage() {
               <section className="panel">
                 <div className="toolbar">
                   <div>
-                    <p className="eyebrow">Yonetici oturumu</p>
+                    <p className="eyebrow">
+                      {isMainAdmin ? "Ana yonetici" : "Editor"}
+                    </p>
                     <h2>{userEmail}</h2>
                   </div>
                   <button className="secondary" type="button" onClick={handleLogout}>
@@ -315,50 +350,88 @@ export default function HomePage() {
                   </button>
                 </div>
 
-                <form onSubmit={handleAddPerson} className="stack">
-                  <label htmlFor="fullName">Ad soyad</label>
-                  <input
-                    id="fullName"
-                    value={form.fullName}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        fullName: event.target.value
-                      }))
-                    }
-                    required
-                  />
+                {isMainAdmin ? (
+                  <form onSubmit={handleAddPerson} className="stack">
+                    <label htmlFor="fullName">Ad soyad</label>
+                    <input
+                      id="fullName"
+                      value={form.fullName}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          fullName: event.target.value
+                        }))
+                      }
+                      required
+                    />
 
-                  <label htmlFor="birthDate">Dogum tarihi</label>
-                  <input
-                    id="birthDate"
-                    type="date"
-                    value={form.birthDate}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        birthDate: event.target.value
-                      }))
-                    }
-                  />
+                    <label htmlFor="birthDate">Dogum tarihi</label>
+                    <input
+                      id="birthDate"
+                      type="date"
+                      value={form.birthDate}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          birthDate: event.target.value
+                        }))
+                      }
+                    />
 
-                  <label htmlFor="notes">Not</label>
-                  <textarea
-                    id="notes"
-                    value={form.notes}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        notes: event.target.value
-                      }))
-                    }
-                    rows={4}
-                  />
+                    <label htmlFor="notes">Not</label>
+                    <textarea
+                      id="notes"
+                      value={form.notes}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          notes: event.target.value
+                        }))
+                      }
+                      rows={4}
+                    />
 
-                  <button type="submit">Kisi ekle</button>
-                </form>
+                    <button type="submit">Kisi ekle</button>
+                  </form>
+                ) : (
+                  <div className="empty-state">
+                    <strong>Editor yetkisi</strong>
+                    <p>
+                      Bu email ana yonetici degil. Kisi ekleme kapali; sadece
+                      mevcut kisilerin not alanlari duzenlenebilir.
+                    </p>
+                  </div>
+                )}
               </section>
             )}
+
+            {session && people.length > 0 ? (
+              <section className="panel">
+                <h2>{isEditor ? "Editor notlari" : "Notlari duzenle"}</h2>
+                <div className="editor-list">
+                  {people.map((person) => (
+                    <article className="editor-card" key={person.id}>
+                      <strong>{person.full_name}</strong>
+                      <label htmlFor={`note-${person.id}`}>Not</label>
+                      <textarea
+                        id={`note-${person.id}`}
+                        value={noteDrafts[person.id] ?? ""}
+                        onChange={(event) =>
+                          setNoteDrafts((current) => ({
+                            ...current,
+                            [person.id]: event.target.value
+                          }))
+                        }
+                        rows={3}
+                      />
+                      <button type="button" onClick={() => handleUpdateNote(person)}>
+                        Notu kaydet
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
         ) : null}
       </section>
