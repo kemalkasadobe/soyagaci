@@ -71,60 +71,89 @@ export default function HomePage() {
     () => (selectedPersonId ? peopleById.get(selectedPersonId) ?? null : null),
     [peopleById, selectedPersonId]
   );
-  const allTreeLevels = useMemo(() => {
-    const visited = new Set<string>();
-    const levels: Person[][] = [];
-    let currentLevel = people.filter(
-      (person) => !person.mother_id && !person.father_id
-    );
-
-    if (currentLevel.length === 0) {
-      currentLevel = people;
-    }
-
-    while (currentLevel.length > 0) {
-      const uniqueLevel = currentLevel.filter((person) => {
-        if (visited.has(person.id)) return false;
-        visited.add(person.id);
-        return true;
-      });
-
-      if (uniqueLevel.length > 0) {
-        levels.push(uniqueLevel);
-      }
-
-      currentLevel = uniqueLevel.flatMap((person) =>
-        people.filter(
-          (candidate) =>
-            candidate.mother_id === person.id || candidate.father_id === person.id
-        )
-      );
-    }
-
-    const remainingPeople = people.filter((person) => !visited.has(person.id));
-    if (remainingPeople.length > 0) {
-      levels.push(remainingPeople);
-    }
-
-    return levels;
-  }, [people]);
   const horizontalTree = useMemo(() => {
     const cardWidth = 300;
     const cardHeight = 72;
     const columnGap = 170;
-    const rowGap = 34;
+    const rowGap = 26;
     const topPadding = 64;
     const leftPadding = 48;
-    const sortedLevels = allTreeLevels.map((level) =>
-      [...level].sort((first, second) => {
-        const firstYear = Number(dateToYear(first.birth_date)) || 9999;
-        const secondYear = Number(dateToYear(second.birth_date)) || 9999;
-        return firstYear - secondYear || first.full_name.localeCompare(second.full_name);
-      })
-    );
-    const maxRows = Math.max(1, ...sortedLevels.map((level) => level.length));
-    const canvasHeight =
-      topPadding * 2 + maxRows * cardHeight + Math.max(0, maxRows - 1) * rowGap;
+    const slotGap = cardHeight + rowGap;
+    const birthYear = (person: Person) => Number(dateToYear(person.birth_date)) || 9999;
+    const sortPeople = (items: Person[]) =>
+      [...items].sort(
+        (first, second) =>
+          birthYear(first) - birthYear(second) ||
+          first.full_name.localeCompare(second.full_name)
+      );
+    const generationById = new Map<string, number>();
+    const childrenByParent = new Map<string, Person[]>();
+
+    people.forEach((person) => {
+      generationById.set(person.id, 0);
+      [person.father_id, person.mother_id].forEach((parentId) => {
+        if (!parentId) return;
+        const children = childrenByParent.get(parentId) ?? [];
+        children.push(person);
+        childrenByParent.set(parentId, children);
+      });
+    });
+
+    for (let index = 0; index < people.length; index += 1) {
+      let changed = false;
+      people.forEach((person) => {
+        const parentGenerations = [person.father_id, person.mother_id]
+          .map((parentId) => (parentId ? generationById.get(parentId) : undefined))
+          .filter((value): value is number => typeof value === "number");
+        const nextGeneration =
+          parentGenerations.length > 0 ? Math.max(...parentGenerations) + 1 : 0;
+
+        if (nextGeneration > (generationById.get(person.id) ?? 0)) {
+          generationById.set(person.id, nextGeneration);
+          changed = true;
+        }
+      });
+
+      if (!changed) break;
+    }
+
+    const maxGeneration = Math.max(0, ...generationById.values());
+    const sortedLevels = Array.from({ length: maxGeneration + 1 }, (_item, index) =>
+      sortPeople(people.filter((person) => generationById.get(person.id) === index))
+    ).filter((level) => level.length > 0);
+    const yById = new Map<string, number>();
+    let openSlot = 0;
+
+    for (let levelIndex = sortedLevels.length - 1; levelIndex >= 0; levelIndex -= 1) {
+      const desired = sortedLevels[levelIndex].map((person) => {
+        const childYs = (childrenByParent.get(person.id) ?? [])
+          .map((child) => yById.get(child.id))
+          .filter((value): value is number => typeof value === "number");
+        const targetY =
+          childYs.length > 0
+            ? childYs.reduce((total, value) => total + value, 0) / childYs.length
+            : openSlot++ * slotGap;
+
+        return { person, targetY };
+      });
+
+      desired.sort(
+        (first, second) =>
+          first.targetY - second.targetY ||
+          birthYear(first.person) - birthYear(second.person) ||
+          first.person.full_name.localeCompare(second.person.full_name)
+      );
+
+      let previousY = -slotGap;
+      desired.forEach(({ person, targetY }) => {
+        const nextY = Math.max(targetY, previousY + slotGap);
+        yById.set(person.id, nextY);
+        previousY = nextY;
+      });
+    }
+
+    const maxY = Math.max(0, ...yById.values());
+    const canvasHeight = topPadding * 2 + maxY + cardHeight;
     const canvasWidth =
       leftPadding * 2 +
       sortedLevels.length * cardWidth +
@@ -132,14 +161,10 @@ export default function HomePage() {
     const positions: Record<string, { x: number; y: number }> = {};
 
     sortedLevels.forEach((level, levelIndex) => {
-      const columnHeight =
-        level.length * cardHeight + Math.max(0, level.length - 1) * rowGap;
-      const startY = topPadding + Math.max(0, (canvasHeight - topPadding * 2 - columnHeight) / 2);
-
-      level.forEach((person, personIndex) => {
+      level.forEach((person) => {
         positions[person.id] = {
           x: leftPadding + levelIndex * (cardWidth + columnGap),
-          y: startY + personIndex * (cardHeight + rowGap)
+          y: topPadding + (yById.get(person.id) ?? 0)
         };
       });
     });
@@ -164,7 +189,7 @@ export default function HomePage() {
       positions,
       width: canvasWidth
     };
-  }, [allTreeLevels, people]);
+  }, [people]);
 
   useEffect(() => {
     const storedVisitorName = window.localStorage.getItem(visitorStorageKey);
