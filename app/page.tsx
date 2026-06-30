@@ -58,6 +58,7 @@ export default function HomePage() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [activeView, setActiveView] = useState<"tree" | "list">("tree");
   const [showAddMember, setShowAddMember] = useState(false);
+  const [selectedPersonId, setSelectedPersonId] = useState("");
 
   const userEmail = useMemo(() => session?.user.email ?? "", [session]);
   const isMainAdmin = userEmail.toLowerCase() === mainAdminEmail;
@@ -66,41 +67,33 @@ export default function HomePage() {
     () => new Map(people.map((person) => [person.id, person])),
     [people]
   );
-  const roots = useMemo(
-    () => people.filter((person) => !person.mother_id && !person.father_id),
-    [people]
+  const selectedPerson = useMemo(
+    () => peopleById.get(selectedPersonId) ?? people[0] ?? null,
+    [people, peopleById, selectedPersonId]
   );
-  const treeLevels = useMemo(() => {
-    const visited = new Set<string>();
-    const levels: Person[][] = [];
-    let currentLevel = roots.length > 0 ? roots : people;
+  const pedigreeColumns = useMemo(() => {
+    if (!selectedPerson) return [];
 
-    while (currentLevel.length > 0) {
-      const uniqueLevel = currentLevel.filter((person) => {
-        if (visited.has(person.id)) return false;
-        visited.add(person.id);
-        return true;
+    const columns: Array<Array<Person | null>> = [[selectedPerson]];
+    let currentColumn: Array<Person | null> = [selectedPerson];
+
+    for (let depth = 0; depth < 4; depth += 1) {
+      const nextColumn = currentColumn.flatMap((person) => {
+        if (!person) return [null, null];
+        return [
+          peopleById.get(person.father_id ?? "") ?? null,
+          peopleById.get(person.mother_id ?? "") ?? null
+        ];
       });
 
-      if (uniqueLevel.length > 0) {
-        levels.push(uniqueLevel);
-      }
+      if (nextColumn.every((person) => person === null)) break;
 
-      currentLevel = uniqueLevel.flatMap((person) =>
-        people.filter(
-          (candidate) =>
-            candidate.mother_id === person.id || candidate.father_id === person.id
-        )
-      );
+      columns.push(nextColumn);
+      currentColumn = nextColumn;
     }
 
-    const missingPeople = people.filter((person) => !visited.has(person.id));
-    if (missingPeople.length > 0) {
-      levels.push(missingPeople);
-    }
-
-    return levels;
-  }, [people, roots]);
+    return columns;
+  }, [peopleById, selectedPerson]);
 
   useEffect(() => {
     const storedVisitorName = window.localStorage.getItem(visitorStorageKey);
@@ -172,6 +165,17 @@ export default function HomePage() {
       }, {})
     );
   }, [people]);
+
+  useEffect(() => {
+    if (people.length === 0) {
+      setSelectedPersonId("");
+      return;
+    }
+
+    if (!selectedPersonId || !people.some((person) => person.id === selectedPersonId)) {
+      setSelectedPersonId(people[0].id);
+    }
+  }, [people, selectedPersonId]);
 
   async function loadPeople() {
     setPeopleLoading(true);
@@ -322,6 +326,11 @@ export default function HomePage() {
     return [getPersonName(person.mother_id), getPersonName(person.father_id)]
       .filter(Boolean)
       .join(" / ");
+  }
+
+  function getGenderClass(person: Person | null) {
+    if (!person?.gender) return "neutral";
+    return person.gender.toLowerCase() === "kadin" ? "female" : "male";
   }
 
   async function handleUpdatePerson(person: Person) {
@@ -476,30 +485,118 @@ export default function HomePage() {
         ) : null}
 
         {people.length > 0 && activeView === "tree" ? (
-          <div className="tree-scroll" aria-label="Agac gorunumu">
-            <div className="generation-tree">
-              {treeLevels.map((level, index) => (
-                <section className="generation" key={`level-${index}`}>
-                  <span className="generation-label">{index + 1}. Nesil</span>
-                  <div className="generation-row">
-                    {level.map((person) => (
-                      <article className="tree-member" key={person.id}>
-                        <span className="avatar" aria-hidden="true">
-                          {person.full_name.trim().charAt(0).toUpperCase()}
-                        </span>
-                        <strong>{person.full_name}</strong>
-                        {formatYears(person) ? <span>{formatYears(person)}</span> : null}
-                        {person.spouse_id ? (
-                          <span>Es: {getPersonName(person.spouse_id)}</span>
-                        ) : null}
-                        {getParents(person) ? <span>Anne/Baba: {getParents(person)}</span> : null}
-                        {person.notes ? <p>{person.notes}</p> : null}
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              ))}
+          <div className="pedigree-layout" aria-label="Pedigree agac gorunumu">
+            <div className="pedigree-scroll">
+              <div
+                className="pedigree-chart"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(
+                    pedigreeColumns.length,
+                    1
+                  )}, minmax(176px, 220px))`
+                }}
+              >
+                {pedigreeColumns.map((column, columnIndex) => (
+                  <section className="pedigree-column" key={`pedigree-${columnIndex}`}>
+                    <span className="generation-label">
+                      {columnIndex === 0 ? "Secili kisi" : `${columnIndex}. Atalar`}
+                    </span>
+                    <div className="pedigree-column-stack">
+                      {column.map((person, personIndex) =>
+                        person ? (
+                          <button
+                            className={`pedigree-card ${getGenderClass(person)} ${
+                              selectedPerson?.id === person.id ? "selected" : ""
+                            }`}
+                            key={person.id}
+                            type="button"
+                            onClick={() => setSelectedPersonId(person.id)}
+                          >
+                            <span className="pedigree-avatar" aria-hidden="true">
+                              {person.full_name.trim().charAt(0).toUpperCase()}
+                            </span>
+                            <span className="pedigree-name">{person.full_name}</span>
+                            {formatYears(person) ? (
+                              <span className="pedigree-years">{formatYears(person)}</span>
+                            ) : null}
+                          </button>
+                        ) : (
+                          <div
+                            className="pedigree-card empty"
+                            key={`empty-${columnIndex}-${personIndex}`}
+                          >
+                            Bilinmiyor
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </section>
+                ))}
+              </div>
             </div>
+
+            <aside className="detail-panel" aria-label="Secili kisi bilgileri">
+              {selectedPerson ? (
+                <>
+                  <div className="detail-head">
+                    <span
+                      className={`detail-avatar ${getGenderClass(selectedPerson)}`}
+                      aria-hidden="true"
+                    >
+                      {selectedPerson.full_name.trim().charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <h3>{selectedPerson.full_name}</h3>
+                      {formatYears(selectedPerson) ? (
+                        <p>{formatYears(selectedPerson)}</p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="detail-list">
+                    {selectedPerson.gender ? (
+                      <span>Cinsiyet: {selectedPerson.gender}</span>
+                    ) : null}
+                    {getParents(selectedPerson) ? (
+                      <span>Anne/Baba: {getParents(selectedPerson)}</span>
+                    ) : null}
+                    {selectedPerson.spouse_id ? (
+                      <span>Es: {getPersonName(selectedPerson.spouse_id)}</span>
+                    ) : null}
+                    {getChildren(selectedPerson.id).length > 0 ? (
+                      <span>
+                        Cocuklar:{" "}
+                        {getChildren(selectedPerson.id)
+                          .map((child) => child.full_name)
+                          .join(", ")}
+                      </span>
+                    ) : null}
+                    {selectedPerson.notes ? <p>{selectedPerson.notes}</p> : null}
+                  </div>
+
+                  <div className="index-panel">
+                    <strong>Kisi indeksi</strong>
+                    <div className="index-list">
+                      {people.map((person) => (
+                        <button
+                          className={
+                            selectedPerson.id === person.id
+                              ? "index-button active"
+                              : "index-button"
+                          }
+                          key={person.id}
+                          type="button"
+                          onClick={() => setSelectedPersonId(person.id)}
+                        >
+                          <span>{person.full_name}</span>
+                          <span>{formatYears(person)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </aside>
           </div>
         ) : null}
 

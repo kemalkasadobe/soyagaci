@@ -388,6 +388,222 @@ button.secondary:hover {
   line-height: 1.35;
 }
 
+.pedigree-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 330px);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.pedigree-scroll {
+  min-height: 560px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #d7d9db;
+  padding: 18px;
+}
+
+.pedigree-chart {
+  display: grid;
+  align-items: center;
+  gap: 34px;
+  min-width: max-content;
+  min-height: 500px;
+}
+
+.pedigree-column {
+  display: grid;
+  gap: 12px;
+}
+
+.pedigree-column-stack {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  min-height: 460px;
+}
+
+.pedigree-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-height: 58px;
+  border: 2px solid #a7b0ba;
+  border-left: 12px solid #38a8d8;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--foreground);
+  text-align: left;
+  background: #ffffff;
+  box-shadow: 0 3px 7px rgb(15 23 42 / 0.16);
+}
+
+.pedigree-card:hover,
+.pedigree-card.selected {
+  border-color: var(--primary);
+  border-left-color: var(--primary);
+  background: #f8fbff;
+}
+
+.pedigree-card.female {
+  border-left-color: #f08ab8;
+}
+
+.pedigree-card.neutral {
+  border-left-color: #d5b12a;
+}
+
+.pedigree-card.empty {
+  min-height: 46px;
+  border: 1px dashed #a7b0ba;
+  border-left: 12px solid #cbd5e1;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.pedigree-avatar {
+  display: inline-grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  color: #0f7490;
+  background: #d9f3f5;
+  font-weight: 800;
+}
+
+.pedigree-card.female .pedigree-avatar {
+  color: #be4f82;
+  background: #fde3ef;
+}
+
+.pedigree-name,
+.pedigree-years {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pedigree-name {
+  font-weight: 800;
+}
+
+.pedigree-years {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.detail-panel {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  border: 1px solid #8bc9c6;
+  border-radius: 8px;
+  background: #eefcf9;
+  padding: 16px;
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #a7d7d2;
+  padding-bottom: 14px;
+}
+
+.detail-head h3,
+.detail-head p {
+  margin: 0;
+}
+
+.detail-head p,
+.detail-list,
+.index-button span:last-child {
+  color: var(--muted);
+}
+
+.detail-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  border: 3px solid #38a8d8;
+  border-radius: 999px;
+  color: #0f7490;
+  background: #ffffff;
+  font-size: 1.45rem;
+  font-weight: 800;
+}
+
+.detail-avatar.female {
+  border-color: #f08ab8;
+  color: #be4f82;
+}
+
+.detail-avatar.neutral {
+  border-color: #d5b12a;
+  color: #8a6b05;
+}
+
+.detail-list {
+  display: grid;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.detail-list span,
+.detail-list p {
+  margin: 0;
+}
+
+.index-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.index-list {
+  display: grid;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid #a7d7d2;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.index-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 38px;
+  border-radius: 0;
+  padding: 8px 10px;
+  color: var(--foreground);
+  text-align: left;
+  background: #ffffff;
+}
+
+.index-button + .index-button {
+  border-top: 1px solid var(--line);
+}
+
+.index-button:hover,
+.index-button.active {
+  color: var(--foreground);
+  background: #dbeafe;
+}
+
+.index-button span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .member-list {
   display: grid;
   gap: 12px;
@@ -643,6 +859,29 @@ button.secondary:hover {
 
   .tree-member {
     width: 170px;
+  }
+
+  .pedigree-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pedigree-scroll {
+    min-height: 420px;
+    padding: 12px;
+  }
+
+  .pedigree-chart {
+    gap: 18px;
+    min-height: 380px;
+  }
+
+  .pedigree-column-stack {
+    min-height: 340px;
+  }
+
+  .pedigree-card,
+  .index-button {
+    width: 100%;
   }
 
   .member-row {
