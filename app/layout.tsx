@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Soy Agaci",
-  description: "Supabase destekli aile soy agaci uygulamasi"
+  description: "SOY AGACI UYGULAMASINA HOSGELDINIZ
+    HUN XER HATIN"
 };
 
 export default function RootLayout({
