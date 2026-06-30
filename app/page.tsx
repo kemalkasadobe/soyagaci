@@ -56,6 +56,7 @@ export default function HomePage() {
   const [visitorName, setVisitorName] = useState("");
   const [visitorInput, setVisitorInput] = useState("");
   const [showAdmin, setShowAdmin] = useState(false);
+  const [activeView, setActiveView] = useState<"tree" | "list">("tree");
 
   const userEmail = useMemo(() => session?.user.email ?? "", [session]);
   const isMainAdmin = userEmail.toLowerCase() === mainAdminEmail;
@@ -68,6 +69,37 @@ export default function HomePage() {
     () => people.filter((person) => !person.mother_id && !person.father_id),
     [people]
   );
+  const treeLevels = useMemo(() => {
+    const visited = new Set<string>();
+    const levels: Person[][] = [];
+    let currentLevel = roots.length > 0 ? roots : people;
+
+    while (currentLevel.length > 0) {
+      const uniqueLevel = currentLevel.filter((person) => {
+        if (visited.has(person.id)) return false;
+        visited.add(person.id);
+        return true;
+      });
+
+      if (uniqueLevel.length > 0) {
+        levels.push(uniqueLevel);
+      }
+
+      currentLevel = uniqueLevel.flatMap((person) =>
+        people.filter(
+          (candidate) =>
+            candidate.mother_id === person.id || candidate.father_id === person.id
+        )
+      );
+    }
+
+    const missingPeople = people.filter((person) => !visited.has(person.id));
+    if (missingPeople.length > 0) {
+      levels.push(missingPeople);
+    }
+
+    return levels;
+  }, [people, roots]);
 
   useEffect(() => {
     const storedVisitorName = window.localStorage.getItem(visitorStorageKey);
@@ -254,6 +286,12 @@ export default function HomePage() {
     return date ? date.slice(0, 4) : "";
   }
 
+  function formatYears(person: Person) {
+    return [dateToYear(person.birth_date), dateToYear(person.death_date)]
+      .filter(Boolean)
+      .join(" - ");
+  }
+
   function personToFormState(person: Person): FormState {
     return {
       fullName: person.full_name,
@@ -276,6 +314,12 @@ export default function HomePage() {
     return people.filter(
       (person) => person.mother_id === parentId || person.father_id === parentId
     );
+  }
+
+  function getParents(person: Person) {
+    return [getPersonName(person.mother_id), getPersonName(person.father_id)]
+      .filter(Boolean)
+      .join(" / ");
   }
 
   async function handleUpdatePerson(person: Person) {
@@ -377,14 +421,32 @@ export default function HomePage() {
       </section>
 
       <section className="tree-panel" aria-label="Soy agaci">
-        <div className="list-header">
+        <div className="tree-topbar">
           <div>
             <p className="eyebrow">Gorunum</p>
             <h2>Soy agaci</h2>
           </div>
-          <button className="secondary" type="button" onClick={loadPeople}>
-            Yenile
-          </button>
+          <div className="tree-actions">
+            <div className="tabs" aria-label="Gorunum secimi">
+              <button
+                className={activeView === "tree" ? "tab active" : "tab"}
+                type="button"
+                onClick={() => setActiveView("tree")}
+              >
+                Tree
+              </button>
+              <button
+                className={activeView === "list" ? "tab active" : "tab"}
+                type="button"
+                onClick={() => setActiveView("list")}
+              >
+                List
+              </button>
+            </div>
+            <button className="secondary" type="button" onClick={loadPeople}>
+              Yenile
+            </button>
+          </div>
         </div>
 
         {peopleLoading ? <p className="muted">Soy agaci yukleniyor...</p> : null}
@@ -395,47 +457,53 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        {people.length > 0 ? (
-          <div className="family-tree">
-            {(roots.length > 0 ? roots : people).map((person) => {
+        {people.length > 0 && activeView === "tree" ? (
+          <div className="tree-scroll" aria-label="Agac gorunumu">
+            <div className="generation-tree">
+              {treeLevels.map((level, index) => (
+                <section className="generation" key={`level-${index}`}>
+                  <span className="generation-label">{index + 1}. Nesil</span>
+                  <div className="generation-row">
+                    {level.map((person) => (
+                      <article className="tree-member" key={person.id}>
+                        <span className="avatar" aria-hidden="true">
+                          {person.full_name.trim().charAt(0).toUpperCase()}
+                        </span>
+                        <strong>{person.full_name}</strong>
+                        {formatYears(person) ? <span>{formatYears(person)}</span> : null}
+                        {person.spouse_id ? (
+                          <span>Es: {getPersonName(person.spouse_id)}</span>
+                        ) : null}
+                        {getParents(person) ? <span>Anne/Baba: {getParents(person)}</span> : null}
+                        {person.notes ? <p>{person.notes}</p> : null}
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {people.length > 0 && activeView === "list" ? (
+          <div className="member-list" aria-label="Kisi listesi">
+            {people.map((person) => {
               const children = getChildren(person.id);
               return (
-                <article className="family-card" key={person.id}>
-                  <div className="person-card">
-                    <span className="avatar" aria-hidden="true">
-                      {person.full_name.trim().charAt(0).toUpperCase()}
-                    </span>
-                    <div>
-                      <strong>{person.full_name}</strong>
-                      {person.birth_date || person.death_date ? (
-                        <span>
-                          {[dateToYear(person.birth_date), dateToYear(person.death_date)]
-                            .filter(Boolean)
-                            .join(" - ")}
-                        </span>
-                      ) : null}
-                      {person.gender ? <span>{person.gender}</span> : null}
-                      {person.spouse_id ? (
-                        <span>Es: {getPersonName(person.spouse_id)}</span>
-                      ) : null}
-                      {person.notes ? <p>{person.notes}</p> : null}
-                    </div>
+                <article className="member-row" key={person.id}>
+                  <div>
+                    <strong>{person.full_name}</strong>
+                    {formatYears(person) ? <span>{formatYears(person)}</span> : null}
+                    {person.gender ? <span>{person.gender}</span> : null}
                   </div>
-
-                  {children.length > 0 ? (
-                    <div className="children-row">
-                      {children.map((child) => (
-                        <div className="child-chip" key={child.id}>
-                          <strong>{child.full_name}</strong>
-                          <span>
-                            {child.mother_id ? `Anne: ${getPersonName(child.mother_id)}` : ""}
-                            {child.mother_id && child.father_id ? " | " : ""}
-                            {child.father_id ? `Baba: ${getPersonName(child.father_id)}` : ""}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
+                  <div>
+                    {person.spouse_id ? <span>Es: {getPersonName(person.spouse_id)}</span> : null}
+                    {getParents(person) ? <span>Anne/Baba: {getParents(person)}</span> : null}
+                    {children.length > 0 ? (
+                      <span>Cocuklar: {children.map((child) => child.full_name).join(", ")}</span>
+                    ) : null}
+                  </div>
+                  {person.notes ? <p>{person.notes}</p> : null}
                 </article>
               );
             })}
@@ -493,6 +561,7 @@ export default function HomePage() {
                   </button>
                 </div>
 
+                <h2>Kisi ekle</h2>
                 <form onSubmit={handleAddPerson} className="stack">
                   <label htmlFor="fullName">Ad soyad</label>
                   <input
