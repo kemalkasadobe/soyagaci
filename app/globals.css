@@ -241,22 +241,17 @@ button.secondary:hover {
 }
 
 .drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  justify-content: flex-end;
-  background: rgb(15 23 42 / 0.24);
+  display: block;
+  margin: 18px 0;
 }
 
 .member-drawer {
-  width: min(420px, 100%);
-  height: 100%;
-  overflow-y: auto;
-  border-left: 1px solid var(--line);
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: #fffaf4;
   padding: 22px 26px 28px;
-  box-shadow: -18px 0 50px rgb(15 23 42 / 0.18);
+  box-shadow: 0 14px 40px rgb(15 23 42 / 0.08);
 }
 
 .drawer-header {
@@ -393,6 +388,58 @@ button.secondary:hover {
   grid-template-columns: minmax(0, 1fr) minmax(270px, 330px);
   gap: 18px;
   margin-top: 18px;
+}
+
+.full-tree-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 330px);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.full-tree-scroll {
+  min-height: 560px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #d7d9db;
+  padding: 18px;
+}
+
+.full-tree-board {
+  display: grid;
+  gap: 28px;
+  min-width: 760px;
+  min-height: 500px;
+  align-content: center;
+}
+
+.full-generation {
+  position: relative;
+  display: grid;
+  gap: 10px;
+}
+
+.full-generation:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  bottom: -15px;
+  height: 2px;
+  background: rgb(100 116 139 / 0.28);
+}
+
+.full-generation-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 14px;
+}
+
+.full-generation-row .pedigree-card {
+  width: 210px;
 }
 
 .pedigree-scroll {
@@ -823,10 +870,6 @@ button.secondary:hover {
     justify-self: stretch;
   }
 
-  .drawer-backdrop {
-    align-items: stretch;
-  }
-
   .member-drawer {
     width: 100%;
     padding: 18px;
@@ -863,6 +906,24 @@ button.secondary:hover {
 
   .pedigree-layout {
     grid-template-columns: 1fr;
+  }
+
+  .full-tree-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .full-tree-scroll {
+    min-height: 420px;
+    padding: 12px;
+  }
+
+  .full-tree-board {
+    min-width: 620px;
+    min-height: 380px;
+  }
+
+  .full-generation-row {
+    justify-content: flex-start;
   }
 
   .pedigree-scroll {

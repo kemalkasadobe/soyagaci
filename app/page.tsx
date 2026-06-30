@@ -71,29 +71,43 @@ export default function HomePage() {
     () => peopleById.get(selectedPersonId) ?? people[0] ?? null,
     [people, peopleById, selectedPersonId]
   );
-  const pedigreeColumns = useMemo(() => {
-    if (!selectedPerson) return [];
+  const allTreeLevels = useMemo(() => {
+    const visited = new Set<string>();
+    const levels: Person[][] = [];
+    let currentLevel = people.filter(
+      (person) => !person.mother_id && !person.father_id
+    );
 
-    const columns: Array<Array<Person | null>> = [[selectedPerson]];
-    let currentColumn: Array<Person | null> = [selectedPerson];
-
-    for (let depth = 0; depth < 4; depth += 1) {
-      const nextColumn = currentColumn.flatMap((person) => {
-        if (!person) return [null, null];
-        return [
-          peopleById.get(person.father_id ?? "") ?? null,
-          peopleById.get(person.mother_id ?? "") ?? null
-        ];
-      });
-
-      if (nextColumn.every((person) => person === null)) break;
-
-      columns.push(nextColumn);
-      currentColumn = nextColumn;
+    if (currentLevel.length === 0) {
+      currentLevel = people;
     }
 
-    return columns;
-  }, [peopleById, selectedPerson]);
+    while (currentLevel.length > 0) {
+      const uniqueLevel = currentLevel.filter((person) => {
+        if (visited.has(person.id)) return false;
+        visited.add(person.id);
+        return true;
+      });
+
+      if (uniqueLevel.length > 0) {
+        levels.push(uniqueLevel);
+      }
+
+      currentLevel = uniqueLevel.flatMap((person) =>
+        people.filter(
+          (candidate) =>
+            candidate.mother_id === person.id || candidate.father_id === person.id
+        )
+      );
+    }
+
+    const remainingPeople = people.filter((person) => !visited.has(person.id));
+    if (remainingPeople.length > 0) {
+      levels.push(remainingPeople);
+    }
+
+    return levels;
+  }, [people]);
 
   useEffect(() => {
     const storedVisitorName = window.localStorage.getItem(visitorStorageKey);
@@ -469,7 +483,13 @@ export default function HomePage() {
               Yenile
             </button>
             {session && isMainAdmin ? (
-              <button type="button" onClick={() => setShowAddMember(true)}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAdmin(true);
+                  setShowAddMember(true);
+                }}
+              >
                 Uye ekle
               </button>
             ) : null}
@@ -485,50 +505,31 @@ export default function HomePage() {
         ) : null}
 
         {people.length > 0 && activeView === "tree" ? (
-          <div className="pedigree-layout" aria-label="Pedigree agac gorunumu">
-            <div className="pedigree-scroll">
-              <div
-                className="pedigree-chart"
-                style={{
-                  gridTemplateColumns: `repeat(${Math.max(
-                    pedigreeColumns.length,
-                    1
-                  )}, minmax(176px, 220px))`
-                }}
-              >
-                {pedigreeColumns.map((column, columnIndex) => (
-                  <section className="pedigree-column" key={`pedigree-${columnIndex}`}>
-                    <span className="generation-label">
-                      {columnIndex === 0 ? "Secili kisi" : `${columnIndex}. Atalar`}
-                    </span>
-                    <div className="pedigree-column-stack">
-                      {column.map((person, personIndex) =>
-                        person ? (
-                          <button
-                            className={`pedigree-card ${getGenderClass(person)} ${
-                              selectedPerson?.id === person.id ? "selected" : ""
-                            }`}
-                            key={person.id}
-                            type="button"
-                            onClick={() => setSelectedPersonId(person.id)}
-                          >
-                            <span className="pedigree-avatar" aria-hidden="true">
-                              {person.full_name.trim().charAt(0).toUpperCase()}
-                            </span>
-                            <span className="pedigree-name">{person.full_name}</span>
-                            {formatYears(person) ? (
-                              <span className="pedigree-years">{formatYears(person)}</span>
-                            ) : null}
-                          </button>
-                        ) : (
-                          <div
-                            className="pedigree-card empty"
-                            key={`empty-${columnIndex}-${personIndex}`}
-                          >
-                            Bilinmiyor
-                          </div>
-                        )
-                      )}
+          <div className="full-tree-layout" aria-label="Tum soy agaci gorunumu">
+            <div className="full-tree-scroll">
+              <div className="full-tree-board">
+                {allTreeLevels.map((level, levelIndex) => (
+                  <section className="full-generation" key={`level-${levelIndex}`}>
+                    <span className="generation-label">{levelIndex + 1}. Nesil</span>
+                    <div className="full-generation-row">
+                      {level.map((person) => (
+                        <button
+                          className={`pedigree-card ${getGenderClass(person)} ${
+                            selectedPerson?.id === person.id ? "selected" : ""
+                          }`}
+                          key={person.id}
+                          type="button"
+                          onClick={() => setSelectedPersonId(person.id)}
+                        >
+                          <span className="pedigree-avatar" aria-hidden="true">
+                            {person.full_name.trim().charAt(0).toUpperCase()}
+                          </span>
+                          <span className="pedigree-name">{person.full_name}</span>
+                          {formatYears(person) ? (
+                            <span className="pedigree-years">{formatYears(person)}</span>
+                          ) : null}
+                        </button>
+                      ))}
                     </div>
                   </section>
                 ))}
@@ -675,8 +676,11 @@ export default function HomePage() {
                     Cikis yap
                   </button>
                 </div>
-                <button type="button" onClick={() => setShowAddMember(true)}>
-                  Uye ekle
+                <button
+                  type="button"
+                  onClick={() => setShowAddMember((current) => !current)}
+                >
+                  {showAddMember ? "Uye eklemeyi kapat" : "Uye ekle"}
                 </button>
               </section>
             )}
