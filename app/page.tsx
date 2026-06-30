@@ -68,8 +68,8 @@ export default function HomePage() {
     [people]
   );
   const selectedPerson = useMemo(
-    () => peopleById.get(selectedPersonId) ?? people[0] ?? null,
-    [people, peopleById, selectedPersonId]
+    () => (selectedPersonId ? peopleById.get(selectedPersonId) ?? null : null),
+    [peopleById, selectedPersonId]
   );
   const allTreeLevels = useMemo(() => {
     const visited = new Set<string>();
@@ -186,8 +186,8 @@ export default function HomePage() {
       return;
     }
 
-    if (!selectedPersonId || !people.some((person) => person.id === selectedPersonId)) {
-      setSelectedPersonId(people[0].id);
+    if (selectedPersonId && !people.some((person) => person.id === selectedPersonId)) {
+      setSelectedPersonId("");
     }
   }, [people, selectedPersonId]);
 
@@ -505,7 +505,12 @@ export default function HomePage() {
         ) : null}
 
         {people.length > 0 && activeView === "tree" ? (
-          <div className="full-tree-layout" aria-label="Tum soy agaci gorunumu">
+          <div
+            className={
+              selectedPerson ? "full-tree-layout detail-open" : "full-tree-layout"
+            }
+            aria-label="Tum soy agaci gorunumu"
+          >
             <div className="full-tree-scroll">
               <div className="full-tree-board">
                 {allTreeLevels.map((level, levelIndex) => (
@@ -536,9 +541,16 @@ export default function HomePage() {
               </div>
             </div>
 
-            <aside className="detail-panel" aria-label="Secili kisi bilgileri">
-              {selectedPerson ? (
-                <>
+            {selectedPerson ? (
+              <aside className="detail-panel" aria-label="Secili kisi bilgileri">
+                <button
+                  className="icon-button detail-close"
+                  type="button"
+                  aria-label="Kisi panelini kapat"
+                  onClick={() => setSelectedPersonId("")}
+                >
+                  x
+                </button>
                   <div className="detail-head">
                     <span
                       className={`detail-avatar ${getGenderClass(selectedPerson)}`}
@@ -595,9 +607,8 @@ export default function HomePage() {
                       ))}
                     </div>
                   </div>
-                </>
-              ) : null}
-            </aside>
+              </aside>
+            ) : null}
           </div>
         ) : null}
 
