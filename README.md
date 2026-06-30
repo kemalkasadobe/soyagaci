@@ -2,6 +2,13 @@
 
 Next.js + Supabase ile calisan minimum aile soy agaci uygulamasi.
 
+## Giris Modeli
+
+- Ziyaretciler ad soyad yazar ve soy agacini gorur.
+- Ana yonetici: `kemalkasadobe@gmail.com`
+- Editorler Supabase Auth kullanicisi olarak email + sifre ile girer.
+- Magic link/email OTP kullanilmaz; boylece Supabase email rate limit'e takilmaz.
+
 ## Ortam Degiskenleri
 
 Vercel ve lokal ortamda su degiskenleri tanimli olmalidir:

@@ -30,6 +30,7 @@ const mainAdminEmail = "kemalkasadobe@gmail.com";
 export default function HomePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -149,12 +150,9 @@ export default function HomePage() {
       return;
     }
 
-    const { error: loginError } = await supabase.auth.signInWithOtp({
+    const { error: loginError } = await supabase.auth.signInWithPassword({
       email,
-      options: {
-        emailRedirectTo:
-          typeof window === "undefined" ? undefined : window.location.origin
-      }
+      password
     });
 
     if (loginError) {
@@ -162,7 +160,8 @@ export default function HomePage() {
       return;
     }
 
-    setMessage("Dogrulama linki email adresinize gonderildi.");
+    setPassword("");
+    setMessage("Giris basarili.");
   }
 
   async function handleLogout() {
@@ -333,7 +332,17 @@ export default function HomePage() {
                     autoComplete="email"
                     required
                   />
-                  <button type="submit">Dogrulama linki gonder</button>
+                  <label htmlFor="password">Sifre</label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Supabase kullanici sifresi"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button type="submit">Giris yap</button>
                 </form>
               </section>
             ) : (
