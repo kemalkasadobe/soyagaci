@@ -55,6 +55,14 @@ textarea {
   margin-bottom: 28px;
 }
 
+.site-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 22px;
+}
+
 .welcome {
   margin-bottom: 24px;
 }
@@ -103,6 +111,52 @@ h2 {
 
 .auth-panel {
   max-width: 460px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(86px, 1fr));
+  gap: 10px;
+}
+
+.stat-grid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+  text-align: center;
+  box-shadow: 0 10px 26px rgb(15 23 42 / 0.06);
+}
+
+.stat-grid strong,
+.stat-grid span {
+  display: block;
+}
+
+.stat-grid strong {
+  font-size: 1.35rem;
+}
+
+.stat-grid span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.source-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+  color: var(--muted);
+}
+
+.source-note strong {
+  color: var(--foreground);
+}
+
+.search-input {
+  width: min(280px, 100%);
 }
 
 .workspace,
@@ -474,6 +528,174 @@ button.secondary:hover {
 .tree-person-card.neutral::after {
   color: #8a6b05;
   background: #fef3c7;
+}
+
+.family-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.generation-board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(230px, 1fr);
+  gap: 14px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 16px;
+}
+
+.generation-column {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 230px;
+}
+
+.generation-title {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.generation-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.person-tile {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 70px;
+  border: 1px solid var(--line);
+  border-left: 8px solid #2563eb;
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--foreground);
+  text-align: left;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgb(15 23 42 / 0.06);
+}
+
+.person-tile:hover,
+.person-tile.selected {
+  border-color: var(--primary);
+  border-left-color: var(--primary);
+  background: #eff6ff;
+}
+
+.person-tile.female {
+  border-left-color: #ec4899;
+}
+
+.person-tile strong,
+.person-tile small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-tile small {
+  color: var(--muted);
+}
+
+.tile-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  color: #1d4ed8;
+  background: #dbeafe;
+  font-weight: 800;
+}
+
+.person-tile.female .tile-avatar {
+  color: #be185d;
+  background: #fce7f3;
+}
+
+.person-detail-panel {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 10px 26px rgb(15 23 42 / 0.07);
+}
+
+.detail-head.simple {
+  padding: 0 0 14px;
+}
+
+.relation-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.relation-card {
+  display: grid;
+  gap: 2px;
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--foreground);
+  text-align: left;
+  background: #f8fafc;
+}
+
+.relation-card.clickable {
+  cursor: pointer;
+}
+
+.relation-card.clickable:hover {
+  border-color: var(--primary);
+  background: #eff6ff;
+}
+
+.relation-card span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.children-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.children-panel button {
+  min-height: 38px;
+  color: var(--foreground);
+  text-align: left;
+  background: #eff6ff;
+}
+
+.children-panel button:hover {
+  background: #dbeafe;
+}
+
+.children-panel span {
+  color: var(--muted);
+}
+
+.compact-member {
+  align-items: center;
+}
+
+.compact-member button {
+  justify-self: end;
 }
 
 .pedigree-scroll {
@@ -879,6 +1101,7 @@ button.secondary:hover {
 
   .grid,
   .toolbar,
+  .site-header,
   .hero {
     grid-template-columns: 1fr;
   }
@@ -930,6 +1153,20 @@ button.secondary:hover {
 
   .tree-grid {
     grid-template-columns: 1fr;
+  }
+
+  .stat-grid,
+  .family-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .source-note {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .search-input {
+    width: 100%;
   }
 
   .children-row {
