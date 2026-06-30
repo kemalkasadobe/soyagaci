@@ -28,6 +28,11 @@ create table if not exists public.people (
   user_id uuid not null references auth.users(id) on delete cascade,
   full_name text not null,
   birth_date date,
+  death_date date,
+  gender text,
+  mother_id uuid references public.people(id) on delete set null,
+  father_id uuid references public.people(id) on delete set null,
+  spouse_id uuid references public.people(id) on delete set null,
   notes text,
   created_at timestamptz not null default now()
 );
@@ -57,6 +62,17 @@ using ((auth.jwt() ->> 'email') = 'kemalkasadobe@gmail.com');
 ```
 
 Kaydolmayi Supabase Dashboard > Authentication > Providers > Email altindan kapatin.
+
+Mevcut tabloya soy agaci kolonlarini eklemek icin:
+
+```sql
+alter table public.people
+add column if not exists death_date date,
+add column if not exists gender text,
+add column if not exists mother_id uuid references public.people(id) on delete set null,
+add column if not exists father_id uuid references public.people(id) on delete set null,
+add column if not exists spouse_id uuid references public.people(id) on delete set null;
+```
 
 ## Calistirma
 

@@ -8,6 +8,11 @@ type Person = {
   id: string;
   full_name: string;
   birth_date: string | null;
+  death_date: string | null;
+  gender: string | null;
+  mother_id: string | null;
+  father_id: string | null;
+  spouse_id: string | null;
   notes: string | null;
   created_at: string;
 };
@@ -15,12 +20,22 @@ type Person = {
 type FormState = {
   fullName: string;
   birthDate: string;
+  deathDate: string;
+  gender: string;
+  motherId: string;
+  fatherId: string;
+  spouseId: string;
   notes: string;
 };
 
 const initialFormState: FormState = {
   fullName: "",
   birthDate: "",
+  deathDate: "",
+  gender: "",
+  motherId: "",
+  fatherId: "",
+  spouseId: "",
   notes: ""
 };
 
@@ -45,6 +60,14 @@ export default function HomePage() {
   const userEmail = useMemo(() => session?.user.email ?? "", [session]);
   const isMainAdmin = userEmail.toLowerCase() === mainAdminEmail;
   const isVisitorReady = visitorName.trim().length > 0;
+  const peopleById = useMemo(
+    () => new Map(people.map((person) => [person.id, person])),
+    [people]
+  );
+  const roots = useMemo(
+    () => people.filter((person) => !person.mother_id && !person.father_id),
+    [people]
+  );
 
   useEffect(() => {
     const storedVisitorName = window.localStorage.getItem(visitorStorageKey);
@@ -123,7 +146,9 @@ export default function HomePage() {
 
     const { data, error: peopleError } = await supabase
       .from("people")
-      .select("id, full_name, birth_date, notes, created_at")
+      .select(
+        "id, full_name, birth_date, death_date, gender, mother_id, father_id, spouse_id, notes, created_at"
+      )
       .order("created_at", { ascending: true });
 
     if (peopleError) {
@@ -202,6 +227,11 @@ export default function HomePage() {
       user_id: session.user.id,
       full_name: form.fullName.trim(),
       birth_date: form.birthDate || null,
+      death_date: form.deathDate || null,
+      gender: form.gender || null,
+      mother_id: form.motherId || null,
+      father_id: form.fatherId || null,
+      spouse_id: form.spouseId || null,
       notes: form.notes.trim() || null
     });
 
@@ -213,6 +243,17 @@ export default function HomePage() {
     setForm(initialFormState);
     setMessage("Kisi eklendi.");
     await loadPeople();
+  }
+
+  function getPersonName(id: string | null) {
+    if (!id) return "";
+    return peopleById.get(id)?.full_name ?? "";
+  }
+
+  function getChildren(parentId: string) {
+    return people.filter(
+      (person) => person.mother_id === parentId || person.father_id === parentId
+    );
   }
 
   async function handleUpdateNote(person: Person) {
@@ -312,19 +353,47 @@ export default function HomePage() {
         ) : null}
 
         {people.length > 0 ? (
-          <div className="tree-grid">
-            {people.map((person) => (
-              <article className="person-card" key={person.id}>
-                <span className="avatar" aria-hidden="true">
-                  {person.full_name.trim().charAt(0).toUpperCase()}
-                </span>
-                <div>
-                  <strong>{person.full_name}</strong>
-                  {person.birth_date ? <span>{person.birth_date}</span> : null}
-                  {person.notes ? <p>{person.notes}</p> : null}
-                </div>
-              </article>
-            ))}
+          <div className="family-tree">
+            {(roots.length > 0 ? roots : people).map((person) => {
+              const children = getChildren(person.id);
+              return (
+                <article className="family-card" key={person.id}>
+                  <div className="person-card">
+                    <span className="avatar" aria-hidden="true">
+                      {person.full_name.trim().charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <strong>{person.full_name}</strong>
+                      <span>
+                        {[person.birth_date, person.death_date]
+                          .filter(Boolean)
+                          .join(" - ")}
+                      </span>
+                      {person.gender ? <span>{person.gender}</span> : null}
+                      {person.spouse_id ? (
+                        <span>Es: {getPersonName(person.spouse_id)}</span>
+                      ) : null}
+                      {person.notes ? <p>{person.notes}</p> : null}
+                    </div>
+                  </div>
+
+                  {children.length > 0 ? (
+                    <div className="children-row">
+                      {children.map((child) => (
+                        <div className="child-chip" key={child.id}>
+                          <strong>{child.full_name}</strong>
+                          <span>
+                            {child.mother_id ? `Anne: ${getPersonName(child.mother_id)}` : ""}
+                            {child.mother_id && child.father_id ? " | " : ""}
+                            {child.father_id ? `Baba: ${getPersonName(child.father_id)}` : ""}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         ) : null}
       </section>
@@ -405,6 +474,92 @@ export default function HomePage() {
                       }))
                     }
                   />
+
+                  <label htmlFor="deathDate">Vefat tarihi</label>
+                  <input
+                    id="deathDate"
+                    type="date"
+                    value={form.deathDate}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        deathDate: event.target.value
+                      }))
+                    }
+                  />
+
+                  <label htmlFor="gender">Cinsiyet</label>
+                  <select
+                    id="gender"
+                    value={form.gender}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        gender: event.target.value
+                      }))
+                    }
+                  >
+                    <option value="">Secilmedi</option>
+                    <option value="Kadin">Kadin</option>
+                    <option value="Erkek">Erkek</option>
+                  </select>
+
+                  <label htmlFor="motherId">Anne</label>
+                  <select
+                    id="motherId"
+                    value={form.motherId}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        motherId: event.target.value
+                      }))
+                    }
+                  >
+                    <option value="">Secilmedi</option>
+                    {people.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.full_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label htmlFor="fatherId">Baba</label>
+                  <select
+                    id="fatherId"
+                    value={form.fatherId}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        fatherId: event.target.value
+                      }))
+                    }
+                  >
+                    <option value="">Secilmedi</option>
+                    {people.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.full_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label htmlFor="spouseId">Es</label>
+                  <select
+                    id="spouseId"
+                    value={form.spouseId}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        spouseId: event.target.value
+                      }))
+                    }
+                  >
+                    <option value="">Secilmedi</option>
+                    {people.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.full_name}
+                      </option>
+                    ))}
+                  </select>
 
                   <label htmlFor="notes">Not</label>
                   <textarea
